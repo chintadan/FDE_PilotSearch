@@ -88,7 +88,7 @@ if __name__ == "__main__":
     for t in range(max_ticks):
         for d in drones: # Every drone must check for pilot
             d.sense(pilot_loc) #Pass in pilot location for sensor class
-        ditto.sync(drones) # If in range, sync with other drones
+        ditto.sync(drones, t) # If in range, sync with other drones, updated with time var
         for d in drones: # Drones move to next point in search pattern
             d.move()
 
