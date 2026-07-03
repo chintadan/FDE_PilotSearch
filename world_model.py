@@ -37,6 +37,12 @@ class WorldModel:
         # confirmed pilot: first non-None wins
         if self.pilot_found is None and peer.pilot_found is not None:
             self.pilot_found = peer.pilot_found
+
+        # Fix: Was missing code in merge that handles the peer_status addition
+        for p_id, info in peer.peer_status.items():
+            cur = self.peer_status.get(p_id)
+            if cur is None or info["t"] > cur["t"]:
+                self.peer_status[p_id] = info
     
     def update(self, drone_id, pos, t):
         # AI-generated, going to implement Gossip Protocol

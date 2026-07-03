@@ -65,6 +65,12 @@ class dataMule:
 
     def nearest_uninformed(self, pos, model, d_id):
         #AI-generated, adding to create dataMule functionality
+        #debug block for AI assist
+        # print("d_id:", repr(d_id), "type:", type(d_id))
+        # for k in model.peer_status:
+        #     print("  key:", repr(k), "type:", type(k),
+        #         "match:", k == d_id,
+        #         "has_fix:", model.peer_status[k]["has_fix"])
         best, best_d = None, None
         for p_id, info in model.peer_status.items():
             if p_id == d_id or info["has_fix"]:

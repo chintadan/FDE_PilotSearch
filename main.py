@@ -17,10 +17,10 @@ g_width : int = 24 #Configuration of Grid World
 g_height : int = 24 #Configuration of Grid World 
 n_drones : int = 3 #Number of drones, 3 initially
 sense_radius : int = 2
-comms_range : int = 24
+comms_range : int = 3
 max_ticks : int = 3000
 seed : int = 42 #Eventually randomize
-render_every : int = 100 #Control terminal ouput 
+render_every : int = 12 #Control terminal ouput 
 pilot_loc: tuple[int, int] #Fill in later
 
 def drone_init():
@@ -60,7 +60,7 @@ def render(pilot_loc, drones, t):
             world[y][x] = "*" #y is vertical -> row, x is horizontal -> col
     for d in drones:
         x, y = d.pos
-        world[y][x] = d.id
+        world[y][x] = str(d.id) # Convert to string for grid
         # print(d.id, d.auto.waypoints[0], d.auto.waypoints[-1])
         # ys = [y for (x, y) in d.auto.waypoints]
         # print(d.id, "y range:", min(ys), "to", max(ys), "count:", len(d.auto.waypoints))
@@ -71,8 +71,8 @@ def success(drones):
     # End state
     # Success depends on every drone converging upon the downed pilot
     confirmations = {d.model.pilot_found for d in drones}
-    #print("confirmations:", confirmations)
-    return len(confirmations) == n_drones #All drones have found pilot
+    return len(confirmations) == 1 and None not in confirmations #All drones have found pilot
+    # Initial logic was incorrect because data type is set, which removes duplicates
 
 def log_events(drones, t, seen):
     for d in drones:
@@ -97,8 +97,8 @@ if __name__ == "__main__":
         for d in drones: # Drones move to next point in search pattern
             d.move(t) #Updated move with time
 
-        # if t % render_every == 0:   # Do not output every tick
-        #     render(pilot_loc, drones, t)
+        if t % render_every == 0:   # Do not output every tick
+            render(pilot_loc, drones, t)
         log_events(drones, t, seen)
 
         if success(drones):             
