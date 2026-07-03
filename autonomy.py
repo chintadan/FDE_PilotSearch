@@ -4,8 +4,9 @@ Author: Nikhil Chintada
 autonomy.py: Holds the logic for an agent's search execution. 
 """
 
+# Update to lawnMower to dataMule, lawnMower pattern by default, but will let other drones know if pilot confirmed.
 # Class for lawnmower search pattern (divide grid into areas of resposibility, move up and then down columns until area completely searched)
-class lawnMower:
+class dataMule:
     def __init__(self, area: tuple[int, int], height: int):
         self.x0, self.x1 = area # [x0, x1) columns for this drone
         self.height = height #height of grid
@@ -23,10 +24,10 @@ class lawnMower:
             going_up = not going_up # Reset boolean
         return path
 
-    def next_move(self, pos, belief):
-        if self.i >= len(self.waypoints):
-            return pos # area fully covered; hold position
-
+    def lawnMower_step(self, pos):
+        # Updated name, this implements lawnMower pattern
+        if self.sweep_complete():
+            return pos
         target = self.waypoints[self.i]
         if pos == target:
             self.i += 1
@@ -34,8 +35,22 @@ class lawnMower:
 
         return self.step(pos, target)
 
+    # Adding method for dataMule class - AI assisted
+    def next_move(self, pos, model, d_id):
+        # Still looking for pilot
+        if model.pilot_found is None:
+            return self.lawnMower_step(pos)
+        # Found the target, act as data mule
+        target = self.nearest_uninformed(pos, model, d_id)
+        if target is not None:
+            #print(f"drone {id} MULING toward uninformed peer at {target}")
+            return self.step(pos, target)
+        # All known peers are informed, finish coverage
+        return self.lawnMower_step(pos)
+
+
     def step(self, pos, target):
-        """Move one cell toward target (4-connected: x first, then y)."""
+        # Move one cell toward target (4-connected: x first, then y).
         x, y = pos
         tx, ty = target
         if x != tx:
@@ -43,3 +58,18 @@ class lawnMower:
         elif y != ty:
             y += 1 if ty > y else -1
         return (x, y)
+    
+    def sweep_complete(self):
+        # Check if sweep of area is complete, useful for checking in with other drones
+        return self.i >= len(self.waypoints)
+
+    def nearest_uninformed(self, pos, model, d_id):
+        #AI-generated, adding to create dataMule functionality
+        best, best_d = None, None
+        for p_id, info in model.peer_status.items():
+            if p_id == d_id or info["has_fix"]:
+                continue
+            d = max(abs(pos[0] - info["pos"][0]), abs(pos[1] - info["pos"][1]))
+            if best_d is None or d < best_d:
+                best, best_d = info["pos"], d
+        return best

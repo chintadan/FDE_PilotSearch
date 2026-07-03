@@ -11,6 +11,7 @@ class WorldModel:
     searched: set = field(default_factory=set)      # Cells the drone has swept
     detections: dict = field(default_factory=dict)  # Cells where the drone had a detection
     pilot_found: tuple | None = None # Convergence pilot location
+    peer_status: dict = field(default_factory=dict)
 
     def observe(self, cell, detection):
         self.searched.add(cell) #Update WorldModel
@@ -36,3 +37,11 @@ class WorldModel:
         # confirmed pilot: first non-None wins
         if self.pilot_found is None and peer.pilot_found is not None:
             self.pilot_found = peer.pilot_found
+    
+    def update(self, drone_id, pos, t):
+        # AI-generated, going to implement Gossip Protocol
+        """A drone records its OWN latest status each tick (LWW by t)."""
+        self.peer_status[drone_id] = {
+            "pos": pos, "t": t,
+            "has_fix": self.pilot_found is not None,
+        }

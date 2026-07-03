@@ -13,5 +13,6 @@ class Sensor:
         dx = abs(pos[0] - pilot_loc[0])
         dy = abs(pos[1] - pilot_loc[1])
         if max(dx, dy) <= self.radius:
+            print("Pilot found")
             return {"pos": pilot_loc, "confidence": 1.0} # For now, return that we have found the pilot
         return None

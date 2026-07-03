@@ -5,7 +5,7 @@ drone.py: Basic drone class- contains a sensor to detect the pilot, a world_mode
 """
 
 class Drone:
-    def __init__(self, id: str, pos: tuple[int, int], sens: "Sensor", auto: "lawnMower", model: "WorldModel"):
+    def __init__(self, id: int, pos: tuple[int, int], sens: "Sensor", auto: "dataMule", model: "WorldModel"):
         self.id = id
         self.pos = pos
         self.sens = sens
@@ -17,8 +17,9 @@ class Drone:
         detection = self.sens.scan(self.pos, pilot_loc) # Call sensor scan() function
         self.model.observe(cell=self.pos, detection=detection) # Add sensor detection to world_model, noting the drone position
 
-    def move(self):
-        self.pos = self.auto.next_move(self.pos, self.model) # Call autonomy next_move() function
+    def move(self, t):
+        self.model.update(self.id, self.pos, t) #Updated w/ t var to publish latest status before deciding next move
+        self.pos = self.auto.next_move(self.pos, self.model, self.id) # Call autonomy next_move() function, added id for dataMule
 
     def drones_in_range(self, peer: "Drone", link_range: int): 
         # Take in another drone, see if within link_range, return boolean

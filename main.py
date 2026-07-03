@@ -9,7 +9,7 @@ import random, sys
 from drone import Drone
 from sensor import Sensor
 from ditto import Ditto
-from autonomy import lawnMower
+from autonomy import dataMule
 from world_model import WorldModel
 
 # Configuration of variables for sim
@@ -17,27 +17,33 @@ g_width : int = 24 #Configuration of Grid World
 g_height : int = 24 #Configuration of Grid World 
 n_drones : int = 3 #Number of drones, 3 initially
 sense_radius : int = 2
-comms_range : int = 6
+comms_range : int = 24
 max_ticks : int = 3000
 seed : int = 42 #Eventually randomize
-render_every : int = 12 #Control terminal ouput 
+render_every : int = 100 #Control terminal ouput 
 pilot_loc: tuple[int, int] #Fill in later
 
 def drone_init():
     drones, lane_width = [], g_width//n_drones #Populate drones in grid according to width/number of drones
+    starts = {} #Adding to implement dataMule
     for i in range(n_drones):
         x0 = i * lane_width
         if i == n_drones - 1:
             x1 = g_width - 1 #Handle last drone
         else:
             x1 = (i + 1) * lane_width #Normal case
+        starts[i] = (x0, 0) #Adding to implement dataMule
         drones.append(Drone(
-            id= str(i),
-            pos=(x0, x1), 
+            id= i, #Changed to int instead of str
+            pos=(x0, 0), # Put x1 instead of 0 here, now fixed
             sens=Sensor(radius=sense_radius), 
-            auto=lawnMower(area=(x0,x1), height=g_height),
+            auto=dataMule(area=(x0,x1), height=g_height),
             model=WorldModel()
         ))
+    # Adding to handle dataMule
+    for d in drones:
+        for p_id, p in starts.items():
+            d.model.peer_status[p_id] = {"pos": p, "t": 0, "has_fix": False} # Seed starting positions, no agent will know pilot @ t=0
     return drones
 
 def render(pilot_loc, drones, t):
@@ -65,6 +71,7 @@ def success(drones):
     # End state
     # Success depends on every drone converging upon the downed pilot
     confirmations = {d.model.pilot_found for d in drones}
+    #print("confirmations:", confirmations)
     return len(confirmations) == n_drones #All drones have found pilot
 
 def log_events(drones, t, seen):
@@ -88,10 +95,10 @@ if __name__ == "__main__":
             d.sense(pilot_loc) #Pass in pilot location for sensor class
         ditto.sync(drones, t) # If in range, sync with other drones, updated with time var
         for d in drones: # Drones move to next point in search pattern
-            d.move()
+            d.move(t) #Updated move with time
 
-        if t % render_every == 0:   # Do not output every tick
-            render(pilot_loc, drones, t)
+        # if t % render_every == 0:   # Do not output every tick
+        #     render(pilot_loc, drones, t)
         log_events(drones, t, seen)
 
         if success(drones):             
