@@ -63,11 +63,9 @@ def render(pilot_loc, drones, t):
 
 def success(drones):
     # End state
-    # Initially, check if any drone has spotted the pilot in their world_model, return bool
-    for d in drones:
-        if d.model.pilot_found is not None:
-            return True
-    return False
+    # Success depends on every drone converging upon the downed pilot
+    confirmations = {d.model.pilot_found for d in drones}
+    return len(confirmations) == n_drones #All drones have found pilot
 
 def log_events(drones, t, seen):
     for d in drones:
