@@ -11,6 +11,7 @@ from sensor import Sensor
 from ditto import Ditto
 from autonomy import dataMule
 from world_model import WorldModel
+from viz import Visualizer
 
 # Configuration of variables for sim
 g_width : int = 24 #Configuration of Grid World 
@@ -19,7 +20,8 @@ n_drones : int = 3 #Number of drones, 3 initially
 sense_radius : int = 2
 comms_range : int = 3
 max_ticks : int = 3000
-seed : int = 42 #Eventually randomize
+# seed : int = 42 #Stable Position
+seed = None # Randomize 
 render_every : int = 12 #Control terminal ouput 
 pilot_loc: tuple[int, int] #Fill in later
 
@@ -53,17 +55,10 @@ def render(pilot_loc, drones, t):
     world[pilot_loc[1]][pilot_loc[0]] = "P"
     for d in drones:
         for(x, y) in d.model.searched:
-            # if not (0 <= x < g_width and 0 <= y < g_height):
-            #     print(f"OUT OF BOUNDS cell from drone {d.id}: (x={x}, y={y}) "
-            #           f"grid is width={g_width} height={g_height}")
-            #     continue
             world[y][x] = "*" #y is vertical -> row, x is horizontal -> col
     for d in drones:
         x, y = d.pos
         world[y][x] = str(d.id) # Convert to string for grid
-        # print(d.id, d.auto.waypoints[0], d.auto.waypoints[-1])
-        # ys = [y for (x, y) in d.auto.waypoints]
-        # print(d.id, "y range:", min(ys), "to", max(ys), "count:", len(d.auto.waypoints))
     print(f"\n--- tick {t} ---")
     print("\n".join("".join(row) for row in world))
 
@@ -87,6 +82,7 @@ if __name__ == "__main__":
     drones = drone_init()
     ditto = Ditto(link_range = comms_range)
     seen = set() # Track if the pilot is seen and where
+    viz = Visualizer(g_width, g_height, drones, comms_range, save_gif=True) # Adding visualizer update
 
     print(f"Initialization: Pilot hidden at {pilot_loc}")
 
@@ -97,12 +93,15 @@ if __name__ == "__main__":
         for d in drones: # Drones move to next point in search pattern
             d.move(t) #Updated move with time
 
-        if t % render_every == 0:   # Do not output every tick
-            render(pilot_loc, drones, t)
-        log_events(drones, t, seen)
+        # if t % render_every == 0:   # Do not output every tick
+        #     render(pilot_loc, drones, t)
+        # log_events(drones, t, seen)
+        # Adding visualizer class update
+        viz.update(g_width, g_height, pilot_loc, drones, t)
 
         if success(drones):             
-            render(pilot_loc, drones, t)
+            # render(pilot_loc, drones, t)
+            viz.update(g_width, g_height, pilot_loc, drones, t) # Adding visualizer update
             print(f"\nSUCCESS at tick {t}: pilot found.")
             sys.exit(0)
 
