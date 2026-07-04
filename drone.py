@@ -15,7 +15,7 @@ class Drone:
 
     def sense(self, pilot_loc):
         detection = self.sens.scan(self.pos, pilot_loc) # Call sensor scan() function
-        self.model.observe(cell=self.pos, detection=detection) # Add sensor detection to world_model, noting the drone position
+        self.model.observe(self.pos, detection, self.id) # Updating w/ self.id to handle sensor.py changes
 
     def move(self, t):
         self.model.update(self.id, self.pos, t) #Updated w/ t var to publish latest status before deciding next move

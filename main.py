@@ -14,18 +14,21 @@ from world_model import WorldModel
 from viz import Visualizer
 
 # Configuration of variables for sim
-g_width : int = 200 #Configuration of Grid World 
-g_height : int = 200 #Configuration of Grid World 
-n_drones : int = 4 #Number of drones, 3 initially
+g_width : int = 100 #Configuration of Grid World 
+g_height : int = 100 #Configuration of Grid World 
+n_drones : int = 3 #Number of drones, 3 initially
 sense_radius : int = 10
-comms_range : int = 30
+comms_range : int = 25
 max_ticks : int = 3000
 # seed : int = 42 #Stable Position
 seed = None # Randomize 
 render_every : int = 12 #Control terminal ouput 
 pilot_loc: tuple[int, int] #Fill in later
+# Adding to handle sensor.py changes (probablistic sensing)
+p_detect: float = 0.9 # Tune if needed
+p_false: float = 0.03 # Tune if needed
 
-def drone_init():
+def drone_init(rng):
     drones, lane_width = [], g_width//n_drones #Populate drones in grid according to width/number of drones
     starts = {} #Adding to implement dataMule
     for i in range(n_drones):
@@ -37,8 +40,8 @@ def drone_init():
         starts[i] = (x0, 0) #Adding to implement dataMule
         drones.append(Drone(
             id= i, #Changed to int instead of str
-            pos=(x0, 0), # Put x1 instead of 0 here, now fixed
-            sens=Sensor(radius=sense_radius), 
+            pos=(x0, 0), # Fix: replaced x1 w/ 0
+            sens=Sensor(radius=sense_radius, p_detect=p_detect, p_false=p_false, rng=rng), # Updated for sensor.py
             auto=dataMule(area=(x0,x1), height=g_height),
             model=WorldModel()
         ))
@@ -86,7 +89,7 @@ def print_sync_summary(ditto):
 if __name__ == "__main__":
     rng = random.Random(seed) #Randomize seed
     pilot_loc = (rng.randrange(g_width), rng.randrange(g_height)) #Hide pilot randomly
-    drones = drone_init()
+    drones = drone_init(rng)
     ditto = Ditto(link_range = comms_range)
     seen = set() # Track if the pilot is seen and where
     viz = Visualizer(g_width, g_height, drones, comms_range, save_gif=True, fps=15) # Adding visualizer update

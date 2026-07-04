@@ -4,6 +4,7 @@ Author: Nikhil Chintada
 viz.py — Matplotlib visualizer for the drone search sim.
 
 Added to enhance visualization of sim, AI-generated w/ author edits
+
 Usage:
     viz = Visualizer(world, drones, link_range, save_gif=True)
     ... in the loop, after act():   viz.update(world, drones, t)
