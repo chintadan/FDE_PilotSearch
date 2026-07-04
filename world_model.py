@@ -54,7 +54,7 @@ class WorldModel:
         for cell, dets in peer.detections.items():
             mine = self.detections.setdefault(cell, {})
             for o_id, conf in dets.items():
-                if conf > mine.get(o_id, 0.0): # Get the max per cell, observer
+                if conf > mine.get(o_id, 0.0): # Get the max per cell, will return 0 if current drone does not have a detection associated with the cell
                     mine[o_id] = conf
 
         # Fix: Was missing code in merge that handles the peer_status addition

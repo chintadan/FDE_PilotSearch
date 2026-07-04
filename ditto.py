@@ -15,7 +15,7 @@ class Ditto:
 
     def sync(self, peers, t):
         in_contact = set()
-        # Updated, based upon Grow-Only Union, adding t to track timing of sim
+        # Updated, based upon Grow-Only Counter, adding t to track timing of sim
         for a, b in combinations(peers, 2):
             if a.drones_in_range(b, self.link_range):
                 pair = tuple(sorted((a.id, b.id)))

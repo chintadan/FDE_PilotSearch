@@ -20,7 +20,6 @@ from itertools import combinations
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 
-
 class Visualizer:
     def __init__(self, w_width, w_height, drones, link_range, live, save_gif, fps, gif_path="run.gif"):
         self.link_range = link_range
@@ -68,7 +67,6 @@ class Visualizer:
         ax.set_xlabel(f"X (0–{w_width - 1})")
         ax.set_ylabel(f"Y (0–{w_height - 1})")
         ax.tick_params(labelsize=8)
-
 
         w, h = w_width, w_height
 
