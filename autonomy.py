@@ -7,7 +7,7 @@ autonomy.py: Holds the logic for an agent's search execution.
 # Update to lawnMower to dataMule, lawnMower pattern by default, but will let other drones know if pilot confirmed.
 # Class for lawnmower search pattern (divide grid into areas of resposibility, move up and then down columns until area completely searched)
 class dataMule:
-    INVESTIGATE_LOW = 0.7 # Threshold for investigation state
+    INVESTIGATE_LOW = 0.65 # Threshold for investigation state
 
     def __init__(self, area: tuple[int, int], height: int):
         self.x0, self.x1 = area # [x0, x1) columns for this drone
@@ -39,6 +39,7 @@ class dataMule:
 
     # Adding method for dataMule class - AI assisted
     def next_move(self, pos, model, d_id):
+        # Data Mule behavior
         # Still looking for pilot
         if model.pilot_found is not None:
             # Found the target, act as data mule
@@ -46,8 +47,8 @@ class dataMule:
             if target is not None:
                 #print(f"drone {id} MULING toward uninformed peer at {target}")
                 return self.step(pos, target)
-            # All known peers are informed, finish coverage
-            return self.lawnMower_step(pos)
+            # All known peers are informed, converge on location
+            return self.step(pos, model.pilot_found)
         # Investigate state
         cell, score = model.best_candidate()
         confirm = getattr(model, "CONFIRM_THRESHOLD", 0.9)

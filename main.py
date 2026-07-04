@@ -20,8 +20,8 @@ n_drones : int = 3 #Number of drones, 3 initially
 sense_radius : int = 80
 comms_range : int = 90
 max_ticks : int = 3000
-#seed : int = 11 #Stable Position
-seed : int = 19 #Stable Position
+seed : int = 11 #Stable Position
+#seed : int = 19 #Stable Position, rec. thresh for 300x300 is .7
 #seed = None # Randomize 
 #render_every : int = 12 #Control terminal ouput - not needed after viz 
 pilot_loc: tuple[int, int] #Fill in later
@@ -66,11 +66,20 @@ def render(pilot_loc, drones, t):
     print(f"\n--- tick {t} ---")
     print("\n".join("".join(row) for row in world))
 
-def success(drones):
+# Update success to check for sensor radius
+def success(drones, sensor_radius):
     # End state
     # Success depends on every drone converging upon the downed pilot
     confirmations = {d.model.pilot_found for d in drones}
-    return len(confirmations) == 1 and None not in confirmations #All drones have found pilot
+    if len(confirmations) != 1 or None in confirmations:
+        return False
+    pilot = next(iter(confirmations)) # Get agreed location
+    for d in drones:
+        if max(abs(d.pos[0] - pilot[0]), 
+               abs(d.pos[1] - pilot[1])) > sensor_radius:
+            return False
+    return True # Only returns true if every drone is within sensor radius of pilot
+    # return len(confirmations) == 1 and None not in confirmations #All drones have found pilot
     # Initial logic was incorrect because data type is set, which removes duplicates
 
 def log_events(drones, t, seen):
@@ -111,7 +120,7 @@ if __name__ == "__main__":
         # Adding visualizer class update
         if t % 5 == 0: viz.update(g_width, g_height, pilot_loc, drones, t)
 
-        if success(drones):             
+        if success(drones, sense_radius):             
             # render(pilot_loc, drones, t)
             viz.update(g_width, g_height, pilot_loc, drones, t) # Adding visualizer update
             print(f"\nSUCCESS at tick {t}: pilot found.")

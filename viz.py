@@ -135,6 +135,15 @@ class Visualizer:
         ax.scatter([px], [py], s=260, marker="X",
                 color="red" if found_any else "none",
                 edgecolors="red", linewidths=2, zorder=5)
+        
+        # in update(), after plotting the pilot: --AI-gen for visualizing convergence
+        from matplotlib.patches import Rectangle
+        r = getattr(drones[0].sens, "radius", 1)
+        ax.add_patch(Rectangle((px - r - 0.5, py - r - 0.5),
+                            2*r + 1, 2*r + 1,
+                            fill=False, edgecolor="red", ls=":",
+                            lw=1.5, alpha=0.7, zorder=3))
+
 
         # --- title ---
         n_know = sum(1 for d in drones if d.model.pilot_found is not None)
