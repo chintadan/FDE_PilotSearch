@@ -16,6 +16,9 @@ matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from itertools import combinations
+# Add confidence overlay
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import Normalize
 
 
 class Visualizer:
@@ -33,6 +36,18 @@ class Visualizer:
         cmap = plt.get_cmap("tab10")
         self.colors = {d.id: cmap(i % 10) for i, d in enumerate(drones)}
 
+        # confidence overlay styling
+        self.conf_cmap = plt.get_cmap("plasma")
+        self.conf_norm = Normalize(vmin=0.0, vmax=1.0)
+        # confirmation threshold (read from the model so they stay in sync)
+        self.threshold = getattr(drones[0].model, "CONFIRM_THRESHOLD", 0.85)
+
+        # one persistent colorbar
+        sm = ScalarMappable(cmap=self.conf_cmap, norm=self.conf_norm)
+        sm.set_array([])
+        self.fig.colorbar(sm, ax=self.ax, fraction=0.046, pad=0.04,
+                        label="aggregate detection confidence")
+
     # ------------------------------------------------------------------
     def update(self, w_width, w_height, pilot_loc, drones, t):
         ax = self.ax
@@ -42,64 +57,87 @@ class Visualizer:
         ax.set_aspect("equal")
         ax.set_xticks([]); ax.set_yticks([])
 
-        # --- coverage: union of searched cells (light shading) ---
-        cover = np.zeros((w_height, w_width))
-        for d in drones:
-            for (x, y) in d.model.searched:            # <-- adjust attr if needed
-                if 0 <= x < w_width and 0 <= y < w_height:
-                    cover[y][x] = 1
-        ax.imshow(cover, cmap="Greys", alpha=0.15, origin="lower",
-                  extent=[-0.5, w_width - 0.5, -0.5, w_height - 0.5],
-                  vmin=0, vmax=1)
+        w, h = w_width, w_height
 
-        # --- sync links: dashed line between in-range peers ---
+        # --- coverage (light grey) ---
+        cover = np.zeros((h, w))
+        for d in drones:
+            for (x, y) in d.model.searched:
+                if 0 <= x < w and 0 <= y < h:
+                    cover[y][x] = 1
+        ax.imshow(cover, cmap="Greys", alpha=0.12, origin="lower",
+                extent=[-0.5, w - 0.5, -0.5, h - 0.5], vmin=0, vmax=1, zorder=1)
+
+        # --- CONFIDENCE OVERLAY (new) ---
+        conf = np.zeros((h, w))
+        for d in drones:
+            for cell, obsmap in d.model.detections.items():
+                prod = 1.0
+                for c in obsmap.values():
+                    prod *= (1.0 - c)
+                agg = 1.0 - prod
+                x, y = cell
+                if 0 <= x < w and 0 <= y < h:
+                    conf[y][x] = max(conf[y][x], agg)   # best evidence any drone has
+
+        masked = np.ma.masked_where(conf <= 0.0, conf)  # only show cells with evidence
+        ax.imshow(masked, cmap=self.conf_cmap, norm=self.conf_norm, origin="lower",
+                extent=[-0.5, w - 0.5, -0.5, h - 0.5], alpha=0.75, zorder=2)
+
+        # annotate cells with meaningful evidence; ring cells past threshold
+        ys, xs = np.where(conf > 0.05)
+        for y, x in zip(ys, xs):
+            val = conf[y][x]
+            ax.text(x, y, f"{val:.2f}", ha="center", va="center",
+                    fontsize=6, color="black", zorder=6)
+            if val >= self.threshold:
+                ax.scatter([x], [y], s=420, facecolors="none",
+                        edgecolors="lime", linewidths=2.2, zorder=6)
+        # --- END confidence overlay ---
+
+        # --- sync links (dashed green) ---
         found_any = False
         for a, b in combinations(drones, 2):
             if not (getattr(a, "alive", True) and getattr(b, "alive", True)):
                 continue
-            dx = abs(a.pos[0] - b.pos[0]); dy = abs(a.pos[1] - b.pos[1])
-            if max(dx, dy) <= self.link_range:
+            if max(abs(a.pos[0] - b.pos[0]), abs(a.pos[1] - b.pos[1])) <= self.link_range:
                 ax.plot([a.pos[0], b.pos[0]], [a.pos[1], b.pos[1]],
-                        color="tab:green", lw=1.5, ls="--", alpha=0.6, zorder=1)
+                        color="tab:green", lw=1.5, ls="--", alpha=0.5, zorder=3)
 
-        # --- per-drone trail + marker ---
+        # --- drones (trail + marker; star if informed) ---
         for d in drones:
             c = self.colors[d.id]
             if getattr(d, "trail", None):
-                tx = [p[0] for p in d.trail]
-                ty = [p[1] for p in d.trail]
-                ax.plot(tx, ty, color=c, lw=1, alpha=0.35, zorder=2)
-
-            knows = d.model.pilot_found is not None    # <-- adjust attr if needed
+                ax.plot([p[0] for p in d.trail], [p[1] for p in d.trail],
+                        color=c, lw=1, alpha=0.3, zorder=4)
+            knows = d.model.pilot_found is not None
             found_any = found_any or knows
-            ax.scatter([d.pos[0]], [d.pos[1]], s=180,
-                       color=c, edgecolors="black",
-                       marker="*" if knows else "o", zorder=4)
-            ax.annotate(str(d.id), (d.pos[0], d.pos[1]),
-                        color="white", ha="center", va="center",
-                        fontsize=8, zorder=5)
+            ax.scatter([d.pos[0]], [d.pos[1]], s=180, color=c, edgecolors="black",
+                    marker="*" if knows else "o", zorder=5)
+            ax.annotate(str(d.id), (d.pos[0], d.pos[1]), color="white",
+                        ha="center", va="center", fontsize=8, zorder=7)
 
-        # --- pilot: red X (hollow until found by someone) ---
+        # --- pilot (hollow until found) ---
         px, py = pilot_loc
         ax.scatter([px], [py], s=260, marker="X",
-                   color="red" if found_any else "none",
-                   edgecolors="red", linewidths=2, zorder=3)
+                color="red" if found_any else "none",
+                edgecolors="red", linewidths=2, zorder=5)
 
-        # --- status title ---
+        # --- title ---
         n_know = sum(1 for d in drones if d.model.pilot_found is not None)
-        ax.set_title(f"t={t} Drones Informed: {n_know}/{len(drones)}"
-                     + ("   PILOT FOUND" if found_any else ""))
+        ax.set_title(f"t={t}   informed: {n_know}/{len(drones)}"
+                    f"   (thr={self.threshold})"
+                    + ("   PILOT FOUND" if found_any else ""))
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
         plt.pause(0.001)
 
         if self.save_gif:
-            buf = self.fig.canvas.buffer_rgba()          # works on Qt5Agg + Agg
+            buf = self.fig.canvas.buffer_rgba()
             img = np.frombuffer(buf, dtype=np.uint8)
-            w, h = self.fig.canvas.get_width_height()
-            img = img.reshape((h, w, 4))                  # RGBA
-            self.frames.append(img.copy())
+            ww, hh = self.fig.canvas.get_width_height()
+            self.frames.append(img.reshape((hh, ww, 4)).copy())
 
     # ------------------------------------------------------------------
     def finish(self):

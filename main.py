@@ -14,13 +14,13 @@ from world_model import WorldModel
 from viz import Visualizer
 
 # Configuration of variables for sim
-g_width : int = 100 #Configuration of Grid World 
-g_height : int = 100 #Configuration of Grid World 
+g_width : int = 300 #Configuration of Grid World 
+g_height : int = 300 #Configuration of Grid World 
 n_drones : int = 3 #Number of drones, 3 initially
-sense_radius : int = 10
-comms_range : int = 25
+sense_radius : int = 80
+comms_range : int = 90
 max_ticks : int = 3000
-# seed : int = 42 #Stable Position
+#seed : int = 42 #Stable Position
 seed = None # Randomize 
 render_every : int = 12 #Control terminal ouput 
 pilot_loc: tuple[int, int] #Fill in later
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         #     render(pilot_loc, drones, t)
         log_events(drones, t, seen)
         # Adding visualizer class update
-        if t % 2 == 0: viz.update(g_width, g_height, pilot_loc, drones, t)
+        if t % 5 == 0: viz.update(g_width, g_height, pilot_loc, drones, t)
 
         if success(drones):             
             # render(pilot_loc, drones, t)
@@ -116,6 +116,7 @@ if __name__ == "__main__":
             # print_sync_summary(ditto) # Can turn on if interested
             viz.finish() # Updated from viz.py, needed here too
             sys.exit(0)
+    viz.update(g_width, g_height, pilot_loc, drones, t) 
     viz.finish() # Updated from viz.py
     print("\nEnded without success (max_ticks reached).")
 

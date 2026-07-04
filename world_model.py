@@ -14,7 +14,7 @@ class WorldModel:
     pilot_found: tuple | None = None # Convergence pilot location
     peer_status: dict = field(default_factory=dict)
 
-    CONFIRM_THRESHOLD = 0.9 # Combined confidence to confirm, adding to handle probablistic sensor
+    CONFIRM_THRESHOLD = 0.85 # Combined confidence to confirm, adding to handle probablistic sensor
 
     def observe(self, cell, detection, obs_id):
         self.searched.add(cell) #Update WorldModel
