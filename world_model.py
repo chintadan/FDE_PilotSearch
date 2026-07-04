@@ -14,7 +14,7 @@ class WorldModel:
     pilot_found: tuple | None = None # Convergence pilot location
     peer_status: dict = field(default_factory=dict)
 
-    CONFIRM_THRESHOLD = 0.85 # Combined confidence to confirm, adding to handle probablistic sensor
+    CONFIRM_THRESHOLD = 0.9 # Combined confidence to confirm, adding to handle probablistic sensor
 
     def observe(self, cell, detection, obs_id):
         self.searched.add(cell) #Update WorldModel
@@ -72,3 +72,14 @@ class WorldModel:
             "pos": pos, "t": t,
             "has_fix": self.pilot_found is not None,
         }
+    
+    # Supports investigation - AI generated
+    def best_candidate(self):
+        """Return (cell, aggregate_confidence) for the strongest evidence cell,
+        or (None, 0.0) if there is none."""
+        best_cell, best_score = None, 0.0
+        for cell, obsmap in self.detections.items():
+            s = self.aggregate(obsmap)
+            if s > best_score:
+                best_cell, best_score = cell, s
+        return best_cell, best_score

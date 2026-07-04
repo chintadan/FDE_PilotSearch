@@ -20,9 +20,10 @@ n_drones : int = 3 #Number of drones, 3 initially
 sense_radius : int = 80
 comms_range : int = 90
 max_ticks : int = 3000
-#seed : int = 42 #Stable Position
-seed = None # Randomize 
-render_every : int = 12 #Control terminal ouput 
+#seed : int = 11 #Stable Position
+seed : int = 19 #Stable Position
+#seed = None # Randomize 
+#render_every : int = 12 #Control terminal ouput - not needed after viz 
 pilot_loc: tuple[int, int] #Fill in later
 # Adding to handle sensor.py changes (probablistic sensing)
 p_detect: float = 0.9 # Tune if needed
@@ -92,7 +93,8 @@ if __name__ == "__main__":
     drones = drone_init(rng)
     ditto = Ditto(link_range = comms_range)
     seen = set() # Track if the pilot is seen and where
-    viz = Visualizer(g_width, g_height, drones, comms_range, save_gif=True, fps=15) # Adding visualizer update
+    # Toggle live to True for window (recommended for new configs/random seeds), False for log output only (terminal)
+    viz = Visualizer(g_width, g_height, drones, comms_range, live=False, save_gif=True, fps=15) # Adding visualizer update
 
     print(f"Initialization: Pilot hidden at {pilot_loc}")
 

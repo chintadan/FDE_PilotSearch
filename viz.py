@@ -22,14 +22,19 @@ from matplotlib.colors import Normalize
 
 
 class Visualizer:
-    def __init__(self, w_width, w_height, drones, link_range, save_gif, fps, gif_path="run.gif"):
+    def __init__(self, w_width, w_height, drones, link_range, live, save_gif, fps, gif_path="run.gif"):
         self.link_range = link_range
+        self.live = live # Toggle live view
         self.save_gif = save_gif
         self.gif_path = gif_path
         self.fps = fps
         self.frames = []          # captured for GIF export
 
-        plt.ion()
+        if not self.live:
+            plt.switch_backend("Agg")     # no window, capture-only
+        else:
+            plt.ion()
+
         self.fig, self.ax = plt.subplots(figsize=(7, 7))
 
         # stable color per drone
@@ -40,7 +45,7 @@ class Visualizer:
         self.conf_cmap = plt.get_cmap("plasma")
         self.conf_norm = Normalize(vmin=0.0, vmax=1.0)
         # confirmation threshold (read from the model so they stay in sync)
-        self.threshold = getattr(drones[0].model, "CONFIRM_THRESHOLD", 0.85)
+        self.threshold = getattr(drones[0].model, "CONFIRM_THRESHOLD", 0.9)
 
         # one persistent colorbar
         sm = ScalarMappable(cmap=self.conf_cmap, norm=self.conf_norm)
@@ -55,7 +60,15 @@ class Visualizer:
         ax.set_xlim(-0.5, w_width - 0.5)
         ax.set_ylim(-0.5, w_height - 0.5)
         ax.set_aspect("equal")
-        ax.set_xticks([]); ax.set_yticks([])
+        # integer grid ticks + labels (thinned so they don't crowd on big grids)
+        step_x = max(1, w_width // 12)
+        step_y = max(1, w_height // 12)
+        ax.set_xticks(range(0, w_width, step_x))
+        ax.set_yticks(range(0, w_height, step_y))
+        ax.set_xlabel(f"X (0–{w_width - 1})")
+        ax.set_ylabel(f"Y (0–{w_height - 1})")
+        ax.tick_params(labelsize=8)
+
 
         w, h = w_width, w_height
 
@@ -130,8 +143,10 @@ class Visualizer:
                     + ("   PILOT FOUND" if found_any else ""))
 
         self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
-        plt.pause(0.001)
+        # Run if live
+        if self.live:
+            self.fig.canvas.flush_events() # live window updates
+            plt.pause(0.001)
 
         if self.save_gif:
             buf = self.fig.canvas.buffer_rgba()
@@ -141,12 +156,13 @@ class Visualizer:
 
     # ------------------------------------------------------------------
     def finish(self):
-        plt.ioff()
         if self.save_gif and self.frames:
             try:
-                import imageio
+                import imageio.v2 as imageio
                 imageio.mimsave(self.gif_path, self.frames[::2], fps=self.fps//2)
                 print(f"saved {self.gif_path} ({len(self.frames)} frames)")
             except ImportError:
                 print("install imageio to export GIF:  pip install imageio")
-        plt.show()
+        if self.live: #Toggle for live
+            plt.ioff()
+            plt.show()
