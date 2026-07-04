@@ -18,10 +18,11 @@ from itertools import combinations
 
 
 class Visualizer:
-    def __init__(self, w_width, w_height, drones, link_range, save_gif=False, gif_path="run.gif"):
+    def __init__(self, w_width, w_height, drones, link_range, save_gif, fps, gif_path="run.gif"):
         self.link_range = link_range
         self.save_gif = save_gif
         self.gif_path = gif_path
+        self.fps = fps
         self.frames = []          # captured for GIF export
 
         plt.ion()
@@ -85,7 +86,7 @@ class Visualizer:
 
         # --- status title ---
         n_know = sum(1 for d in drones if d.model.pilot_found is not None)
-        ax.set_title(f"t={t}   drones informed: {n_know}/{len(drones)}"
+        ax.set_title(f"t={t} Drones Informed: {n_know}/{len(drones)}"
                      + ("   PILOT FOUND" if found_any else ""))
 
         self.fig.canvas.draw()
@@ -93,9 +94,10 @@ class Visualizer:
         plt.pause(0.001)
 
         if self.save_gif:
-            self.fig.canvas.draw()
-            img = np.frombuffer(self.fig.canvas.buffer_rgba(), dtype=np.uint8)
-            img = img.reshape(self.fig.canvas.get_width_height()[::-1] + (4,))
+            buf = self.fig.canvas.buffer_rgba()          # works on Qt5Agg + Agg
+            img = np.frombuffer(buf, dtype=np.uint8)
+            w, h = self.fig.canvas.get_width_height()
+            img = img.reshape((h, w, 4))                  # RGBA
             self.frames.append(img.copy())
 
     # ------------------------------------------------------------------
@@ -104,7 +106,7 @@ class Visualizer:
         if self.save_gif and self.frames:
             try:
                 import imageio
-                imageio.mimsave(self.gif_path, self.frames, fps=15)
+                imageio.mimsave(self.gif_path, self.frames[::2], fps=self.fps//2)
                 print(f"saved {self.gif_path} ({len(self.frames)} frames)")
             except ImportError:
                 print("install imageio to export GIF:  pip install imageio")

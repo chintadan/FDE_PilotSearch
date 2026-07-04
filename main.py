@@ -14,11 +14,11 @@ from world_model import WorldModel
 from viz import Visualizer
 
 # Configuration of variables for sim
-g_width : int = 24 #Configuration of Grid World 
-g_height : int = 24 #Configuration of Grid World 
-n_drones : int = 3 #Number of drones, 3 initially
-sense_radius : int = 2
-comms_range : int = 3
+g_width : int = 200 #Configuration of Grid World 
+g_height : int = 200 #Configuration of Grid World 
+n_drones : int = 4 #Number of drones, 3 initially
+sense_radius : int = 10
+comms_range : int = 30
 max_ticks : int = 3000
 # seed : int = 42 #Stable Position
 seed = None # Randomize 
@@ -76,13 +76,20 @@ def log_events(drones, t, seen):
             print(f"[t={t}] DETECTION: drone {d.id} confirmed pilot at "
                   f"{d.model.pilot_found}")
 
+# Adding to print at end of run
+def print_sync_summary(ditto):
+    print(f"\nTotal sync events: {len(ditto.events)}")
+    for (t, kind, a, b) in ditto.events:
+        print(f"  [t={t}] {kind} {a}<->{b}")
+
+
 if __name__ == "__main__":
     rng = random.Random(seed) #Randomize seed
     pilot_loc = (rng.randrange(g_width), rng.randrange(g_height)) #Hide pilot randomly
     drones = drone_init()
     ditto = Ditto(link_range = comms_range)
     seen = set() # Track if the pilot is seen and where
-    viz = Visualizer(g_width, g_height, drones, comms_range, save_gif=True) # Adding visualizer update
+    viz = Visualizer(g_width, g_height, drones, comms_range, save_gif=True, fps=15) # Adding visualizer update
 
     print(f"Initialization: Pilot hidden at {pilot_loc}")
 
@@ -95,14 +102,16 @@ if __name__ == "__main__":
 
         # if t % render_every == 0:   # Do not output every tick
         #     render(pilot_loc, drones, t)
-        # log_events(drones, t, seen)
+        log_events(drones, t, seen)
         # Adding visualizer class update
-        viz.update(g_width, g_height, pilot_loc, drones, t)
+        if t % 2 == 0: viz.update(g_width, g_height, pilot_loc, drones, t)
 
         if success(drones):             
             # render(pilot_loc, drones, t)
             viz.update(g_width, g_height, pilot_loc, drones, t) # Adding visualizer update
             print(f"\nSUCCESS at tick {t}: pilot found.")
+            # print_sync_summary(ditto) # Can turn on if interested
+            viz.finish() # Updated from viz.py, needed here too
             sys.exit(0)
     viz.finish() # Updated from viz.py
     print("\nEnded without success (max_ticks reached).")
