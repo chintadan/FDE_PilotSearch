@@ -10,6 +10,8 @@ Usage:
     ... after the loop:             viz.finish()   # shows/saves
 """
 
+import matplotlib
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from itertools import combinations

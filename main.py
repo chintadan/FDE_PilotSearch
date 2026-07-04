@@ -104,7 +104,7 @@ if __name__ == "__main__":
             viz.update(g_width, g_height, pilot_loc, drones, t) # Adding visualizer update
             print(f"\nSUCCESS at tick {t}: pilot found.")
             sys.exit(0)
-
+    viz.finish() # Updated from viz.py
     print("\nEnded without success (max_ticks reached).")
 
 
