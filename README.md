@@ -2,19 +2,19 @@
 Author: Nikhil Chintada
 
 **FDE_PilotSearch** is a prototype implementation to demonstrate autonomous system operation in a contested environment (network partitions) that utilizes **Grow-Only CRDT** (state-based) via a **Gossip Protocol** in emulation of the Ditto SDK. Agents traverse the search area, acting as **Data Mules** and converging once a downed pilot has been spotted to coordinate rescue. 
-### Demo
-[Demo GIF](https://github.com/chintadan/FDE_PilotSearch/blob/master/run_final.gif)
+
+![Demo GIF](https://github.com/chintadan/FDE_PilotSearch/blob/master/run_final.gif)
 ## Table of Contents
-1. [[#Usage]]
-2. [[#Features]]
-	1. [[#Autonomous Agents]]
-	2. [[#Sync Strategy and Conflict Resolution]]
-	3. [[#Visualization & Logging]]
-	4. [[#Assumptions & Trade-Offs]]
-	5. [[#Scaling & Limitations]]
-3. [[#Development Notes]]
-	1. [[#AI Usage]]
-	2. [[#Roadmap & Production]]
+1. [Usage](#usage)
+2. [Features](#features)
+	1. [Autonomous Agents](#autonomous-agents)
+	2. [Sync Strategy and Conflict Resolution](#sync-strategy-and-conflict-resolution)
+	3. [Visualization and Logging](#visualization-and-logging)
+	4. [Assumptions and Trade-Offs](#assumptions-and-trade-offs)
+	5. [Scaling and Limitations](#scaling-and-limitations)
+3. [Development Notes](#development-notes)
+	1. [AI Usage](#ai-usage)
+	2. [Roadmap and Production](#roadmap-and-production)
 ## Usage
 ```
 # Bash
@@ -45,7 +45,7 @@ The implementation of FDE_PilotSearch was focused on efficiency and simple demon
 	- CRDT functionality is primarily implemented through the WorldModel class, which is the dataclass that stores each agent's detection map. This class handles the CRDT logic primarily, through the merge function. It also handles the challenges of probabilistic confidence values by flagging pilot_found to a cell that crosses the CONFIRM_THRESHOLD flag.
 	- To allow for data mule behavior, merge functionality (in world_model.py) was enhanced to implement Gossip Protocol. It does this by keeping a list of peer statuses and checking during a merge whether the peer has a more recent update for it. If it does, the peer_status structure (dict) is updated and used as the agent reevaluates its own world_model. In effect this creates multi-hop behavior for data propagation. 
 - Connectivity and partitions were modeled simply by range-gating the agents. The variable comms_range defines the distance within which ditto.py knows to send states between agents. 
-### Visualization & Logging
+### Visualization and Logging
 - 2D Simulated Live-View of Search, Communication & Convergence (MatPlotLib)
 	- Pilot (Location unknown to drones) represented as an empty X, fills in red when one drone has confirmed pilot location.
 	- Detection confidence aggregate is shown in pilot cell (0.0 - 1.0, e.g. 0.65), updates as readings accumulate. 
@@ -58,7 +58,7 @@ The implementation of FDE_PilotSearch was focused on efficiency and simple demon
 	- X-axis, Y-axis labels, CONFIRM_THRESHOLD value, pilot found status, detection confidence all marked on 2D visualizer. 
 - Logging of syncs (Up/Down links) and pilot detection per drone, as well as success state (all drones have found and converged on pilot within time window)
 - Basic grid modeling (can be toggled in main.py via render function): Outputs and displays grid world in terminal, shows drones as number IDs and pilot as P. Visited cells are represented with asterisks while unvisited cells are represented with a period. 
-### Assumptions & Trade-Offs
+### Assumptions and Trade-Offs
 I chose python as my implementation language for speed of prototyping and AI agent collaboration (less focus on syntax, compiling, etc.). This forced some limitations early, mainly no Ditto SDK implementation. I ultimately accepted this as a trade-off to enhance my understanding of CRDTs and prevent any scope creep from utilizing an SDK I have not worked with before for a short assignment. 
 
 Due to the recommended duration of the assignment I kept the scope for autonomous agents as small as I could to start, implementing a basic lawnmower pattern, having a sensor that (initially) immediately detected the pilot if it is was within the set sensor_radius. I pretty quickly added G-Counter functionality by then expanding the base ditto.py and world_model.py files (as well as light modifications to drone.py). Once I had core functionality: drones searched, data propagating via mesh, I realized a limitation of the lawnmower pattern for this challenge. To demonstrate async behavior in a multi-agent search that equally partitions the search area, link ranges must be less than the corresponding distance between agents. This change necessitates data mule behavior.
@@ -75,7 +75,7 @@ Final core assumptions:
 - Flight deconfliction is unnecessary. 
 - No state decay- i.e. agents do not ever lower the confidence assigned to a cell. 
 - Bandwidth when connected is not throttled, decayed or limited. 
-### Scaling & Limitations
+### Scaling and Limitations
 FDE_PilotSearch scales easily to multiple agents and different world sizes due to the 2D simulation and world model. However, it is at its core a **simplified representation** and so does not demonstrate complex autonomy or mutli-agent behaviors, nor would it be directly usable for a ROS2/ArduPilot and/or Ditto SDK implementation. Furthermore, if a drone were to be destroyed during the search, key behaviors would likely breakdown as implemented. In addition, as noted above, the lawnmower pattern behavior in conjunction with the probabilistic sensor could (if untuned) lead to simulation runs in which no drones detect the pilot, or drones do not propagate information and/or converge in time (detecting only near the end of the simulation). Though I added in code that handles corroboration between drones (for sensor detections), the lawnmower pattern prevents this strategy from being demonstrated effectively. Lastly, if running in live view, more agents or a larger world could lead to slower display rates and rendering. 
 ## Development Notes
 This was a really fun challenge, and an interesting one for me as I learned more about CRDTs, Ditto SDK as well as AI assisted development (something my current job does not currently have much scope for).
@@ -101,9 +101,9 @@ As noted above, visualization was a purely Claude addition with the smallest lay
 However when I wanted to add a final converging logic, Claude made a mistake in suggesting I remove the data mule code block within merge() (autonomy.py). 
 To add convergence behavior LLM suggested that I would not need to keep dataMule behavior, and that I could just immediately converge on the pilot, like so:
 ```
-	- # Once pilot is confirmed, converge on location
-	if model.pilot_found is not None:
-		return self.step(pos, model.pilot_found)
+# Once pilot is confirmed, converge on location
+if model.pilot_found is not None:
+	return self.step(pos, model.pilot_found)
 ```
 I flagged this behavior as incorrect, and instead modified the dataMule behavior so that instead of returning to the lawnMower pattern in its final condition, it moved towards the pilot, like so:
 ```
@@ -118,7 +118,7 @@ if model.pilot_found is not None:
 ```
 
 I tested Claude's code to verify my hypothesis, and sure enough it orphaned the final drone, preventing the success state. So, I modified the existing data mule block as shown above.
-### Roadmap & Production 
+### Roadmap and Production 
 If I had another day, I'd focus on a couple of additions: 
 - sim_cfg.py to make configuration a lot smoother, more uniform across codebase, right now it is unpolished (hosted primarily in main.py). After uploading to git initially, I'd tell git to --assume-unchanged so that the user could play around with configurations without git tracking them as changes. This would be quick and my first add. 
 - Downed drone functionality. I believe mostly for this to work drone utilization across the code base would need some quick checks with a running list of downed drones (offline-first that is compared just like world_model). This would require more edge case testing as well as an addition of either event based or user based ability to remove drones.
